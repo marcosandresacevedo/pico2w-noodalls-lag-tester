@@ -14,6 +14,7 @@
 //playlist showing soldering and setup is here
 //https://www.youtube.com/playlist?list=PLevqZFjlWIdexYMa2yQZgw0dfLVjzN8m7
 
+//This version backports web server and interface that was added added for the pinout in newer revisions.
 
 #include "LittleFS.h"
 #include <SerialBT.h>
@@ -76,7 +77,7 @@ float OPT2_slowest = 999.9;
 
 int save_mode = 0;
 int calculate_mode = 0;
-int fastest_slowest_mode = 0;
+int fastest_slowest_mode = 1;
 int only_one_test = 0;
 
 float upper = 8;
@@ -1147,7 +1148,7 @@ if (mode == -4){
         youvegotemail =  SerialBT.readStringUntil('\n');youvegotemail.trim();}
 
 
-//////HTML LOOP
+
 
 WiFiClient client = server.accept();
 if (client) {
@@ -1391,18 +1392,34 @@ char c = client.read();
       password_save.close();
       }  
       if (whole_url.indexOf("GET /set?") >= 0) {
-      Serial.println("Looking");
-      int startPos = whole_url.indexOf("GET /set?=") + 10;
-      endPos = whole_url.indexOf(" ", startPos);    
-      youvegotmail = whole_url[9];          
-      youvegotemail = whole_url.substring(startPos+2, endPos);youvegotemail.trim();
-      Serial.println((youvegotmail));
-      Serial.println((youvegotemail));   
-      
-      client.println("HTTP/1.1 303 See Other");
-      client.println("Location: /");
-      client.println("Connection: close");
-      client.println();
+        
+        int qPos = whole_url.indexOf('?');
+        if (qPos != -1) {
+          
+          youvegotmail = whole_url[qPos + 1];
+
+          
+          int eqPos = whole_url.indexOf('=', qPos);
+          if (eqPos != -1) {
+            
+            int endVal = whole_url.indexOf(' ', eqPos);
+            if (endVal == -1) endVal = whole_url.indexOf('&', eqPos);
+            if (endVal == -1) endVal = whole_url.length();
+
+            youvegotemail = whole_url.substring(eqPos + 1, endVal);
+            youvegotemail.trim();
+          }
+        }
+
+        Serial.print("Web command: ");
+        Serial.print((char)youvegotmail);
+        Serial.print("  value: ");
+        Serial.println(youvegotemail);
+
+        client.println("HTTP/1.1 303 See Other");
+        client.println("Location: /");
+        client.println("Connection: close");
+        client.println();
       }
     }
     whole_url = "";
